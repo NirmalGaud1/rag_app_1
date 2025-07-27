@@ -7,6 +7,9 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 import os
 
+# Set GRPC_POLL_STRATEGY to "poll" to potentially resolve asyncio event loop issues
+os.environ["GRPC_POLL_STRATEGY"] = "poll"
+
 # Your Google API Key
 GOOGLE_API_KEY = "AIzaSyBfxXXypKxT0-SOzncW5m153D75r-kLRLA"
 
