@@ -6,6 +6,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 import os
+import asyncio # Import asyncio
 
 # Set GRPC_POLL_STRATEGY to "poll" to potentially resolve asyncio event loop issues
 os.environ["GRPC_POLL_STRATEGY"] = "poll"
@@ -39,6 +40,12 @@ def get_vector_store(text_chunks):
     """
     Creates a vector store (FAISS) from text chunks using Google Generative AI Embeddings.
     """
+    # Ensure an asyncio event loop is available for the current thread
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_API_KEY)
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index") # Save the index locally for persistence
@@ -47,6 +54,12 @@ def get_conversational_chain():
     """
     Defines the conversational chain for question answering using Gemini Pro.
     """
+    # Ensure an asyncio event loop is available for the current thread
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     prompt_template = """
     Answer the question as detailed as possible from the provided context, make sure to provide all the details. If the answer is not in the provided context, just say, "Answer is not available in the context." Do not try to make up an answer.
     Context:\n {context}?\n
@@ -64,6 +77,12 @@ def user_input(user_question):
     """
     Processes the user's question, retrieves relevant documents, and generates an answer.
     """
+    # Ensure an asyncio event loop is available for the current thread
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_API_KEY)
     
     # Check if the FAISS index exists
@@ -84,7 +103,7 @@ def user_input(user_question):
 
 def main():
     st.set_page_config(page_title="PDF RAG App", layout="wide")
-    st.header("Chat with Multiple PDFs using Gemini Pro 📚")
+    st.header("Chat with Multiple PDFs using Gemini Pro �")
 
     with st.sidebar:
         st.title("Your Documents")
