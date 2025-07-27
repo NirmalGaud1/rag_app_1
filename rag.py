@@ -13,7 +13,7 @@ from google.api_core import exceptions # Import exceptions from google.api_core
 os.environ["GRPC_POLL_STRATEGY"] = "poll"
 
 # Your Google API Key
-GOOGLE_API_KEY = "AIzaSyBfxXXypKxT0-SOzncW5m153D75r-kLRLA"
+GOOGLE_API_KEY = "AIzaSyA-9-lTQTWdNM43YdOXMQwGKDy0SrMwo6c"
 
 def get_pdf_text(pdf_docs):
     """
