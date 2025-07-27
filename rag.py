@@ -7,6 +7,7 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 import os
 import asyncio # Import asyncio
+from google.api_core import exceptions # Import exceptions from google.api_core
 
 # Set GRPC_POLL_STRATEGY to "poll" to potentially resolve asyncio event loop issues
 os.environ["GRPC_POLL_STRATEGY"] = "poll"
@@ -46,9 +47,17 @@ def get_vector_store(text_chunks):
     except RuntimeError:
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_API_KEY)
-    vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index") # Save the index locally for persistence
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_API_KEY)
+        vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
+        vector_store.save_local("faiss_index") # Save the index locally for persistence
+    except exceptions.NotFound as e:
+        st.error(f"Error: Could not access the embedding model. Please check your Google API Key and ensure the 'embedding-001' model is available and accessible. Details: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"An unexpected error occurred during vector store creation: {e}")
+        st.stop()
+
 
 def get_conversational_chain():
     """
@@ -68,10 +77,18 @@ def get_conversational_chain():
     Answer:
     """
     
-    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=GOOGLE_API_KEY)
-    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-    chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
-    return chain
+    try:
+        model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=GOOGLE_API_KEY)
+        prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+        chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+        return chain
+    except exceptions.NotFound as e:
+        st.error(f"Error: Could not access the Gemini Pro model. Please check your Google API Key and ensure the 'gemini-pro' model is available and accessible. Details: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"An unexpected error occurred during conversational chain setup: {e}")
+        st.stop()
+
 
 def user_input(user_question):
     """
@@ -83,27 +100,43 @@ def user_input(user_question):
     except RuntimeError:
         asyncio.set_event_loop(asyncio.new_event_loop())
 
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_API_KEY)
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GOOGLE_API_KEY)
+    except exceptions.NotFound as e:
+        st.error(f"Error: Could not initialize embeddings for user input. Please check your Google API Key. Details: {e}")
+        return
+    except Exception as e:
+        st.error(f"An unexpected error occurred during embeddings initialization: {e}")
+        return
     
     # Check if the FAISS index exists
     if not os.path.exists("faiss_index"):
         st.warning("Please upload and process PDF documents first to create the FAISS index.")
         return
 
-    new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    docs = new_db.similarity_search(user_question)
+    try:
+        new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+        docs = new_db.similarity_search(user_question)
+    except Exception as e:
+        st.error(f"Error loading FAISS index or performing similarity search: {e}")
+        return
 
-    chain = get_conversational_chain()
+    chain = get_conversational_chain() # This function now handles its own errors
 
-    response = chain(
-        {"input_documents": docs, "question": user_question},
-        return_only_outputs=True
-    )
-    st.write("Reply: ", response["output_text"])
+    if chain: # Only proceed if chain was successfully created
+        try:
+            response = chain(
+                {"input_documents": docs, "question": user_question},
+                return_only_outputs=True
+            )
+            st.write("Reply: ", response["output_text"])
+        except Exception as e:
+            st.error(f"An error occurred while generating the response: {e}")
+
 
 def main():
     st.set_page_config(page_title="PDF RAG App", layout="wide")
-    st.header("Chat with Multiple PDFs using Gemini Pro �")
+    st.header("Chat with Multiple PDFs using Gemini Pro 📚")
 
     with st.sidebar:
         st.title("Your Documents")
