@@ -13,7 +13,7 @@ from google.api_core import exceptions # Import exceptions from google.api_core
 os.environ["GRPC_POLL_STRATEGY"] = "poll"
 
 # Your Google API Key
-GOOGLE_API_KEY = "AIzaSyA-9-lTQTWdNM43YdOXMQwGKDy0SrMwo6c"
+GOOGLE_API_KEY = "AIzaSyBfxXXypKxT0-SOzncW5m153D75r-kLRLA"
 
 def get_pdf_text(pdf_docs):
     """
@@ -78,12 +78,13 @@ def get_conversational_chain():
     """
     
     try:
-        model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=GOOGLE_API_KEY)
+        # Changed model from "gemini-pro" to "gemini-1.5-flash"
+        model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3, google_api_key=GOOGLE_API_KEY)
         prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
         chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
         return chain
     except exceptions.NotFound as e:
-        st.error(f"Error: Could not access the Gemini Pro model. Please check your Google API Key and ensure the 'gemini-pro' model is available and accessible. Details: {e}")
+        st.error(f"Error: Could not access the Gemini 1.5 Flash model. Please check your Google API Key and ensure the 'gemini-1.5-flash' model is available and accessible. Details: {e}")
         st.stop()
     except Exception as e:
         st.error(f"An unexpected error occurred during conversational chain setup: {e}")
@@ -136,7 +137,7 @@ def user_input(user_question):
 
 def main():
     st.set_page_config(page_title="PDF RAG App", layout="wide")
-    st.header("Chat with Multiple PDFs using Gemini Pro 📚")
+    st.header("Chat with Multiple PDFs using Gemini Pro 📚") # Title remains "Gemini Pro" but uses 1.5 Flash
 
     with st.sidebar:
         st.title("Your Documents")
